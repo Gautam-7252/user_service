@@ -16,6 +16,18 @@ type server struct {
 	users []*pb.User
 }
 
+func NewServer() *server {
+	return &server{
+		users: []*pb.User{
+			{Id: 1, Fname: "Steve", City: "LA", Phone: 1234567890, Height: 5.8, Married: true},
+			{Id: 2, Fname: "John", City: "NY", Phone: 1234567891, Height: 6.0, Married: false},
+			{Id: 3, Fname: "Mello", City: "VG", Phone: 1234567892, Height: 5.11, Married: false},
+			{Id: 4, Fname: "Gracia", City: "NY", Phone: 1234567893, Height: 5.7, Married: true},
+			{Id: 5, Fname: "David", City: "LA", Phone: 1234567894, Height: 5.5, Married: false},
+		},
+	}
+}
+
 func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	for _, user := range s.users {
 		if user.Id == req.Id {
@@ -41,6 +53,16 @@ func (s *server) SearchUsers(ctx context.Context, req *pb.SearchUsersRequest) (*
 	var users []*pb.User
 	for _, user := range s.users {
 		match := true
+		if req.Id != 0 {
+			if user.Id != req.Id {
+				match = false
+			}
+		}
+		if req.Fname != "" {
+			if user.Fname != req.Fname {
+				match = false
+			}
+		}
 		if req.City != "" {
 			if user.City != req.City {
 				match = false
@@ -51,10 +73,13 @@ func (s *server) SearchUsers(ctx context.Context, req *pb.SearchUsersRequest) (*
 				match = false
 			}
 		}
-		if req.Married {
-			if user.Married != req.Married {
+		if req.Height != 0.0 {
+			if user.Height != req.Height {
 				match = false
 			}
+		}
+		if req.Married && !user.Married {
+			match = false
 		}
 		if match {
 			users = append(users, user)
@@ -69,12 +94,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterUserServiceServer(s, &server{
-		users: []*pb.User{
-			{Id: 1, Fname: "Steve", City: "LA", Phone: 1234567890, Height: 5.8, Married: true},
-			// Add more users as needed
-		},
-	})
+	pb.RegisterUserServiceServer(s, NewServer())
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
